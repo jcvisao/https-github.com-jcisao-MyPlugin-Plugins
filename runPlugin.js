@@ -1,10 +1,13 @@
+require('dotenv').config(); // Carrega as variáveis do .env
+
 const axios = require('axios');
 const SpeechRecognition = require('@google-cloud/speech');
 const Influx = require('influx');
 const { Configuration, OpenAIApi } = require('openai');
 
 // Configurações
-const GEMINI_API_KEY = 'SUA_API_KEY_GEMINI';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Carregado do .env
+const GOOGLE_TRANSLATE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY; // Carregado do .env
 const configuration = new Configuration({ apiKey: GEMINI_API_KEY });
 const openai = new OpenAIApi(configuration);
 const client = new SpeechRecognition.SpeechClient();
@@ -22,8 +25,6 @@ const influx = new Influx.InfluxDB({
 
 // Função para registrar o plugin na interface do Superalgos
 function registerPluginInUI(name, description) {
-    // Código fictício para registrar o plugin na interface
-    // Certifique-se de substituir pelo código real necessário para registrar na interface do Superalgos
     console.log(`Registrando plugin: ${name} - ${description}`);
 }
 
@@ -31,7 +32,6 @@ function registerPluginInUI(name, description) {
 async function main() {
     console.log('Iniciando Assistente Generativa...');
 
-    // Configuração do Google Cloud Speech-to-Text para português
     const request = {
         config: {
             encoding: 'LINEAR16',
@@ -48,7 +48,6 @@ async function main() {
                 const command = data.results[0].alternatives[0].transcript;
                 console.log('Comando recebido:', command);
 
-                // Traduzir comando para inglês
                 const translatedCommand = await translateToEnglish(command);
 
                 const response = await openai.createCompletion({
@@ -69,7 +68,6 @@ async function main() {
             console.error('Erro no reconhecimento de voz:', err);
         });
 
-    // Capturar áudio em tempo real do microfone
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
             const audioContext = new AudioContext();
@@ -87,7 +85,6 @@ async function main() {
             console.error('Erro ao acessar o microfone:', err);
         });
 
-    // Verificar conexão com InfluxDB
     influx.getDatabaseNames()
         .then(names => {
             if (!names.includes('superalgos_db')) {
@@ -99,37 +96,30 @@ async function main() {
             console.error('Erro ao conectar ao InfluxDB:', err);
         });
 
-    // Registrar Plugin na Interface
     registerPluginInUI('MyPlugin', 'Plugin para integração de IA generativa.');
 
     console.log('Plugin registrado na interface.');
 }
 
-// Função para executar comandos
 function executeCommand(command) {
     if (command.includes('analisar dados')) {
         console.log('Executando análise de dados...');
         logToInflux(command, 'Análise de dados executada');
-        // Lógica de análise de dados aqui
     } else if (command.includes('consultar histórico')) {
         console.log('Consultando histórico...');
         logToInflux(command, 'Histórico consultado');
-        // Lógica para consultar histórico aqui
     } else if (command.includes('gerar relatório')) {
         console.log('Gerando relatório...');
         logToInflux(command, 'Relatório gerado');
-        // Lógica para gerar relatório aqui
     } else if (command.includes('atualizar dados')) {
         console.log('Atualizando dados...');
         logToInflux(command, 'Dados atualizados');
-        // Lógica para atualizar dados aqui
     } else {
         console.log('Comando desconhecido:', command);
         logToInflux(command, 'Comando desconhecido');
     }
 }
 
-// Função para registrar dados no InfluxDB
 function logToInflux(command, response) {
     influx.writePoints([
         {
@@ -142,13 +132,12 @@ function logToInflux(command, response) {
     });
 }
 
-// Funções de tradução com tratamento de erros
 async function translateToEnglish(text) {
     try {
         const response = await axios.post('https://translation.googleapis.com/language/translate/v2', {
             q: text,
             target: 'en',
-            key: 'AIzaSyBhYP07OBOfOvFFsxFGzzT9T04MReJPfXA'
+            key: GOOGLE_TRANSLATE_API_KEY
         });
         return response.data.data.translations[0].translatedText;
     } catch (error) {
@@ -161,7 +150,7 @@ async function translateToPortuguese(text) {
         const response = await axios.post('https://translation.googleapis.com/language/translate/v2', {
             q: text,
             target: 'pt',
-            key: 'AIzaSyBhYP07OBOfOvFFsxFGzzT9T04MReJPfXA'
+            key: GOOGLE_TRANSLATE_API_KEY
         });
         return response.data.data.translations[0].translatedText;
     } catch (error) {
